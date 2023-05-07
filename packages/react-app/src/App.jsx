@@ -45,7 +45,6 @@ const { ethers } = require("ethers");
 
 // authenticate OpenAI with OpenAI Key
 const openAiKey = process.env.REACT_APP_OPENAI_KEY;
-console.log("openAiKey", openAiKey);
 const configuration = new Configuration({
   apiKey: openAiKey,
 });
@@ -535,7 +534,7 @@ function App() {
   const getJson = async useOpenAi => {
     if (useOpenAi == true) {
       const response = await openai.createImage({
-        prompt: prompt, // append some fixed prompt in order to set a tone for the whole collection
+        prompt: prompt, // append some fixed prompt if you want to set a tone for the whole collection
         n: 1,
         size: "256x256",
       });
@@ -670,6 +669,31 @@ function App() {
               </Button>
             </div>
 
+            <div style={{ width: 640, margin: "auto" }}>
+              This dApp is deployed on Ethereum Sepolia TESTNET. You need TEST ETH to play with it.
+              <br />
+              <br />
+              What happens after you click the button?
+              <br />
+              Step 1. Call OpenAI (DALL·E) API to generate an image and grab its URL.
+              <br />
+              Step 2. Call IPFS API to add the content (name, image URL and descrption) to IPFS network.
+              <br />
+              Step 3. Send a transaction to blockchain and set the content-addressed hash as the token URI.
+              <br />
+              So please be patient as it takes a few seconds to finish those work 🤓
+              <br />
+              <br />
+              Every time you click on the button, I pay 2 cents for calling OpenAI API.
+              <br />
+              I won't go broke if you generate a bunch, but please don't spam it :)
+              <br />
+              <br />
+              <a href="https://github.com/austintgriffith/scaffold-eth" target="_blank" rel="noopener noreferrer">
+                scaffold-eth
+              </a>{" "}
+              is an awesome tool for dApp development. Shout out to Austin Griffith 🏗
+            </div>
             <div style={{ width: 640, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
               <List
                 bordered
