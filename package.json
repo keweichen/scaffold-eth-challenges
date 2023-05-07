@@ -67,5 +67,9 @@
       "**/hardhat-ts/**"
     ]
   },
-  "dependencies": {}
+  "dependencies": {
+    "dotenv": "^16.0.3", 
+    "openai": "^3.2.1",    
+    "react-spinners": "^0.13.8",
+    "surge": "^0.23.1"}
 }

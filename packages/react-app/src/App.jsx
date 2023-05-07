@@ -17,7 +17,6 @@ import Fortmatic from "fortmatic";
 import React, { useCallback, useEffect, useState } from "react";
 import ReactJson from "react-json-view";
 import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
-//import Torus from "@toruslabs/torus-embed"
 import WalletLink from "walletlink";
 import Web3Modal from "web3modal";
 import "./App.css";
@@ -25,6 +24,8 @@ import { Account, Address, AddressInput, Contract, Faucet, GasGauge, Header, Ram
 import { INFURA_ID, NETWORK, NETWORKS, AustinsPainting } from "./constants";
 import { Transactor } from "./helpers";
 import { useContractConfig } from "./hooks";
+import { Configuration, OpenAIApi } from "openai";
+import { PulseLoader } from "react-spinners";
 
 const projectId = "2GajDLTC6y04qsYsoDRq9nGmWwK";
 const projectSecret = "48c62c6b3f82d2ecfa2cbe4c90f97037";
@@ -41,6 +42,14 @@ const ipfs = ipfsAPI({
 });
 
 const { ethers } = require("ethers");
+
+// authenticate OpenAI with OpenAI Key
+const openAiKey = process.env.REACT_APP_OPENAI_KEY;
+console.log("openAiKey", openAiKey);
+const configuration = new Configuration({
+  apiKey: openAiKey,
+});
+const openai = new OpenAIApi(configuration);
 
 /*
     Welcome to 🏗 scaffold-eth !
@@ -61,10 +70,8 @@ const { ethers } = require("ethers");
     (and then use the `useExternalContractLoader()` hook!)
 */
 
-/// 📡 What chain are your contracts deployed to?
-const targetNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+const targetNetwork = NETWORKS.localhost;
 
-// 😬 Sorry for all the console logging
 const DEBUG = true;
 const NETWORKCHECK = true;
 
@@ -202,6 +209,8 @@ function App() {
 
   const [injectedProvider, setInjectedProvider] = useState();
   const [address, setAddress] = useState();
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // for adding a little PulseLoader for user because mint takes a few seconds
 
   const logoutOfWeb3Modal = async () => {
     await web3Modal.clearCachedProvider();
@@ -518,11 +527,44 @@ function App() {
   const [minting, setMinting] = useState(false);
   const [count, setCount] = useState(1);
 
+  // set useOpenAi as false to save cost in testing mode
+  const useOpenAi = true;
+
+  const defaultInput = "a cute cat sitting on laptop";
+  const prompt = inputValue ? inputValue : defaultInput;
+  const getJson = async useOpenAi => {
+    if (useOpenAi == true) {
+      const response = await openai.createImage({
+        prompt: prompt, // append some fixed prompt in order to set a tone for the whole collection
+        n: 1,
+        size: "256x256",
+      });
+      const openAiImgUrl = response.data.data[0].url;
+      //console.log("openAiImgUrl", openAiImgUrl);
+      const openAiJson = {
+        description: prompt,
+        image: openAiImgUrl,
+        name: prompt,
+      };
+      return openAiJson;
+    } else {
+      return AustinsPainting;
+    }
+  };
+
   const mintItem = async () => {
-    // upload to ipfs
-    const uploaded = await ipfs.add(JSON.stringify(AustinsPainting[count]));
+    setIsLoading(true);
+    let uploaded;
+    if (useOpenAi == true) {
+      const json = await getJson(useOpenAi);
+      uploaded = await ipfs.add(JSON.stringify(json));
+    } else {
+      const json = await getJson(useOpenAi);
+      uploaded = await ipfs.add(JSON.stringify(json[count]));
+    }
     setCount(count + 1);
     console.log("Uploaded Hash: ", uploaded);
+    console.log("uploaded", uploaded);
     const result = tx(
       writeContracts &&
         writeContracts.YourCollectible &&
@@ -530,6 +572,7 @@ function App() {
       update => {
         console.log("📡 Transaction Update:", update);
         if (update && (update.status === "confirmed" || update.status === 1)) {
+          setIsLoading(false);
           console.log(" 🍾 Transaction " + update.hash + " finished!");
           console.log(
             " ⛽️ " +
@@ -572,7 +615,7 @@ function App() {
               Transfers
             </Link>
           </Menu.Item>
-          <Menu.Item key="/ipfsup">
+          {/* <Menu.Item key="/ipfsup">
             <Link
               onClick={() => {
                 setRoute("/ipfsup");
@@ -591,7 +634,7 @@ function App() {
             >
               IPFS Download
             </Link>
-          </Menu.Item>
+          </Menu.Item> */}
           <Menu.Item key="/debugcontracts">
             <Link
               onClick={() => {
@@ -606,17 +649,27 @@ function App() {
         <Switch>
           <Route exact path="/">
             <div style={{ width: 640, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
+              {/* <Input type="text" placeholder="What to generate?" value={inputValue} onChange={handleInputChange} maxLength={30} /> */}
+              <Input
+                type="text"
+                placeholder="Describe what NFT you'd like to create (e.g. a cute cat sitting on a laptop)"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                maxLength={50}
+              />
               <Button
                 disabled={minting}
                 shape="round"
                 size="large"
                 onClick={() => {
                   mintItem();
+                  // console.log("input value", inputValue);
                 }}
               >
-                MINT NFT
+                {isLoading ? <PulseLoader size={10} margin={2} /> : "MINT NFT"}
               </Button>
             </div>
+
             <div style={{ width: 640, margin: "auto", marginTop: 32, paddingBottom: 32 }}>
               <List
                 bordered
@@ -626,6 +679,7 @@ function App() {
                   return (
                     <List.Item key={id + "_" + item.uri + "_" + item.owner}>
                       <Card
+                        className="card"
                         title={
                           <div>
                             <span style={{ fontSize: 16, marginRight: 8 }}>#{id}</span> {item.name}
@@ -633,9 +687,9 @@ function App() {
                         }
                       >
                         <div>
-                          <img src={item.image} style={{ maxWidth: 150 }} />
+                          <img src={item.image} style={{ maxWidth: 200 }} />
                         </div>
-                        <div>{item.description}</div>
+                        {/* <div>{item.description}</div> */}
                       </Card>
 
                       <div>
@@ -780,7 +834,7 @@ function App() {
       <ThemeSwitch />
 
       {/* 👨‍💼 Your account is in the top right with a wallet at connect options */}
-      <div style={{ position: "fixed", textAlign: "right", right: 0, top: 0, padding: 10 }}>
+      <div style={{ position: "absolute", textAlign: "right", right: 0, top: 0, padding: 10 }}>
         <Account
           address={address}
           localProvider={localProvider}
@@ -808,7 +862,14 @@ function App() {
           <Col span={8} style={{ textAlign: "center", opacity: 1 }}>
             <Button
               onClick={() => {
-                window.open("https://t.me/joinchat/KByvmRe5wkR-8F_zz6AjpA");
+                const popupText =
+                  "The local faucet below is only for testing in local environment. :)   If you can't get test ETH on Sepolia from other public faucets, send an email to keweichen at gmail dot com";
+                const width = 400;
+                const height = 300;
+                const left = window.screen.width / 2 - width / 2;
+                const top = window.screen.height / 2 - height / 2;
+                const popup = window.open("", "myPopup", `width=${width},height=${height},left=${left},top=${top}`);
+                popup.document.write(`<p>${popupText}</p>`);
               }}
               size="large"
               shape="round"
