@@ -5,8 +5,10 @@ import React from "react";
 
 export default function Header() {
   return (
-    <a href="https://github.com/austintgriffith/scaffold-eth" target="_blank" rel="noopener noreferrer">
-      <PageHeader title="🏗 scaffold-eth" subTitle="🖼 NFT example" style={{ cursor: "pointer" }} />
-    </a>
+    <PageHeader
+      title="Generative NFT"
+      subTitle="Everyone is talking about generative AI so why not "
+      style={{ cursor: "pointer" }}
+    />
   );
 }

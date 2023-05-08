@@ -69,7 +69,7 @@ const openai = new OpenAIApi(configuration);
     (and then use the `useExternalContractLoader()` hook!)
 */
 
-const targetNetwork = NETWORKS.localhost;
+const targetNetwork = NETWORKS.sepolia;
 
 const DEBUG = true;
 const NETWORKCHECK = true;
